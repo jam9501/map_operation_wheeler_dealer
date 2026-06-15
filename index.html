@@ -1,3 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Medicare Power Wheelchair Denials · 2022–2025</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: #f9f8f5; color: #1a1a18;
+    padding: 32px 24px; max-width: 1000px; margin: 0 auto;
+  }
+
+  :focus-visible {
+    outline: 3px solid #0072B2;
+    outline-offset: 2px;
+    border-radius: 3px;
+  }
+  .eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: #666; margin-bottom: 6px; }
+  h1 { font-size: 22px; font-weight: 600; line-height: 1.3; margin-bottom: 4px; }
+  .subhed { font-size: 14px; color: #444; margin-bottom: 24px; line-height: 1.5; }
+  .controls { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+  .controls span { font-size: 13px; color: #555; font-weight: 500; }
+  button {
+    font-size: 12px; font-family: inherit; padding: 5px 12px;
+    border-radius: 6px; border: 2px solid #767676; background: #fff;
+    cursor: pointer; color: #1a1a18; transition: all .15s;
+    min-height: 36px; 
+  }
+  button.active {
+    background: #003A6C; color: #fff; border-color: #003A6C;
+    font-weight: 600;
+  }
+  button:hover:not(.active) { background: #E8F1F8; border-color: #0072B2; }
+  .metrics {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px;
+  }
+  @media (max-width: 600px) { .metrics { grid-template-columns: repeat(2,1fr); } }
+  .metric { background: #fff; border: 1px solid #ccc; border-radius: 8px; padding: 12px 14px; }
+  .metric-label { font-size: 11px; color: #555; margin-bottom: 4px; font-weight: 500; }
+  .metric-value { font-size: 20px; font-weight: 700; color: #1a1a18; }
+  #map-wrap {
+    width: 100%; background: #fff; border: 1px solid #ccc; border-radius: 10px; padding: 8px;
+    position: relative;
+  }
+  svg { display: block; width: 100%; }
+
+  path.state {
+    transition: opacity .1s;
+    cursor: pointer;
+  }
+  path.state:hover, path.state:focus { opacity: .82; outline: none; }
+  path.state:focus-visible {
+    stroke: #1a1a18 !important;
+    stroke-width: 2.5px !important;
+  }
+  .legend { display: flex; align-items: center; gap: 10px; margin-top: 12px; font-size: 11px; color: #555; }
+
+  .legend-swatches { display: flex; gap: 2px; flex: 1; }
+  .legend-swatch {
+    height: 12px; flex: 1;
+    position: relative;
+  }
+  .legend-swatch::after {
+    content: '';
+    position: absolute; inset: 0;
+  }
+
+  #tooltip {
+    display: none; position: fixed; background: #fff;
+    border: 2px solid #003A6C; border-radius: 8px;
+    padding: 11px 14px; font-size: 13px; pointer-events: none;
+    z-index: 999; max-width: 240px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.15);
+  }
+  #tt-name { font-weight: 700; margin-bottom: 8px; font-size: 14px; }
+  #tt-table { width: 100%; border-collapse: collapse; }
+  #tt-table td { padding: 2px 0; }
+  #tt-table .lbl { color: #555; }
+  #tt-table .val { text-align: right; font-weight: 600; }
+ 
+  .sr-only {
+    position: absolute; width: 1px; height: 1px;
+    padding: 0; margin: -1px; overflow: hidden;
+    clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+  }
+ 
+  .data-table-wrap {
+    margin-top: 24px;
+    border: 1px solid #ccc; border-radius: 8px; overflow: hidden;
+  }
+  .data-table-wrap summary {
+    padding: 10px 16px; background: #f0ede6; cursor: pointer;
+    font-size: 13px; font-weight: 600; color: #1a1a18;
+    list-style: none; display: flex; align-items: center; gap: 8px;
+  }
+  .data-table-wrap summary::-webkit-details-marker { display: none; }
+  .data-table-wrap summary::before { content: '▶'; font-size: 10px; transition: transform .2s; }
+  .data-table-wrap[open] summary::before { transform: rotate(90deg); }
+  .data-table-wrap summary:focus-visible {
+    outline: 3px solid #0072B2; outline-offset: -3px;
+  }
+  .data-table-scroll { overflow-x: auto; }
+  table.state-data {
+    width: 100%; border-collapse: collapse; font-size: 12px;
+  }
+  table.state-data th {
+    background: #f8f7f2; padding: 7px 10px; text-align: left;
+    border-bottom: 2px solid #ccc; font-weight: 600; white-space: nowrap;
+    position: sticky; top: 0;
+  }
+  table.state-data th[scope="col"]:not(:first-child) { text-align: right; }
+  table.state-data td { padding: 6px 10px; border-bottom: 1px solid #e8e5de; }
+  table.state-data td:not(:first-child) { text-align: right; }
+  table.state-data tr:hover { background: #f0ede6; }
+  table.state-data tr:focus-within { background: #E8F1F8; }
+  .src { font-size: 11px; color: #777; margin-top: 14px; }
+  
+  .skip-link {
+    position: absolute; left: -9999px; top: 8px;
+    background: #003A6C; color: #fff; padding: 8px 16px;
+    border-radius: 4px; font-size: 14px; font-weight: 600; z-index: 9999;
+    text-decoration: none;
+  }
+  .skip-link:focus { left: 8px; }
+</style>
+</head>
+<body>
+
+<a class="skip-link" href="#state-data-table">Skip map, go to data table</a>
+
+
+
+<div class="controls" role="group" aria-label="Map display options">
+  <span id="mode-label">Show:</span>
+  <button class="active" id="btn-dollars" onclick="setMode('dollars')"
+    aria-pressed="true" aria-describedby="mode-label">Dollars denied</button>
+  <button id="btn-rate" onclick="setMode('rate')"
+    aria-pressed="false" aria-describedby="mode-label">Denial rate %</button>
+  <button id="btn-dollar-pct" onclick="setMode('dollar_pct')"
+    aria-pressed="false" aria-describedby="mode-label">% of billed denied</button>
+</div>
+
+<div class="metrics" role="region" aria-label="National summary statistics">
+  <div class="metric">
+    <div class="metric-label">Total denied (2022–2025)</div>
+    <div class="metric-value" aria-label="1 point 16 billion dollars total denied">$1.16B</div>
+  </div>
+  <div class="metric">
+    <div class="metric-label">Avg claim denial rate</div>
+    <div class="metric-value">13.5%</div>
+  </div>
+  <div class="metric">
+    <div class="metric-label">Beneficiaries affected</div>
+    <div class="metric-value">152,714</div>
+  </div>
+  <div class="metric">
+    <div class="metric-label">Suppliers remaining (was 5,552)</div>
+    <div class="metric-value">1,912</div>
+  </div>
+</div>
+
+<!-- Live region announces state data when focus/hover changes -->
+<div id="map-announcement" aria-live="polite" aria-atomic="true" class="sr-only"></div>
+
+<div id="map-wrap">
+  <svg id="map" viewBox="0 0 960 540"
+    role="img"
+    aria-labelledby="map-title map-desc">
+    <desc id="map-desc">
+      Choropleth map of the United States showing Medicare power wheelchair denial data by state
+      for 2022–2025. California has the highest denied dollars at $126.7 million. Hawaii and
+      Puerto Rico have the highest denial rates at 41–42%. The map uses an orange-to-dark-red
+      color scale: lighter shades indicate lower values, darker shades indicate higher values.
+      A full data table is available below the map.
+    </desc>
+  </svg>
+</div>
+
+<div class="legend" role="img" aria-label="Color legend: lighter orange = lower value, darker red = higher value">
+  <span id="leg-lo" aria-hidden="true">low</span>
+  <div class="legend-swatches" aria-hidden="true" id="leg-swatches"></div>
+  <span id="leg-hi" aria-hidden="true">high</span>
+</div>
+
+<div id="tooltip" role="tooltip" aria-hidden="true">
+  <div id="tt-name"></div>
+  <table id="tt-table" aria-hidden="true">
+    <tr><td class="lbl">Denied claims</td><td class="val" id="tt-dc"></td></tr>
+    <tr><td class="lbl">Claim denial rate</td><td class="val" id="tt-rate"></td></tr>
+    <tr><td class="lbl">Dollars denied</td><td class="val" id="tt-dd"></td></tr>
+    <tr><td class="lbl">% of billed denied</td><td class="val" id="tt-dp"></td></tr>
+    <tr><td class="lbl">Beneficiaries</td><td class="val" id="tt-ben"></td></tr>
+    <tr><td class="lbl">Top denied code</td><td class="val" id="tt-code"></td></tr>
+  </table>
+</div>
+
+<!-- Accessible data table — always in DOM, visible to all -->
+<details class="data-table-wrap" id="state-data-table">
+  <summary>Full state-by-state data table (keyboard &amp; screen reader accessible)</summary>
+  <div class="data-table-scroll">
+    <table class="state-data" id="state-table">
+      <caption class="sr-only">Medicare power wheelchair denial data by state, 2022–2025. Source: CMS FOIA PDFOIA-250808-01.</caption>
+      <thead>
+        <tr>
+          <th scope="col">State</th>
+          <th scope="col">Denied claims</th>
+          <th scope="col">Denial rate</th>
+          <th scope="col">Dollars denied</th>
+          <th scope="col">% of billed denied</th>
+          <th scope="col">Beneficiaries</th>
+          <th scope="col">Top denied code</th>
+        </tr>
+      </thead>
+      <tbody id="state-tbody"></tbody>
+    </table>
+  </div>
+</details>
+
+<p class="src">Source: CMS FOIA response PDFOIA-250808-01. Period: Jan 1, 2022 – Jul 19, 2025. Extracted from IDR Aug 19, 2025.</p>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
 
@@ -114,3 +336,5 @@ window.addEventListener("DOMContentLoaded", async () => {
   }
 });
 </script>
+</body>
+</html>
